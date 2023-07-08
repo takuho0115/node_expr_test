@@ -1,6 +1,8 @@
-#[path="./token.rs"]
-mod token;
-use token::*;
+#[path="./tokenlist.rs"]
+mod tokenlist;
+use std::iter::Peekable;
+
+use tokenlist::*;
 #[derive(PartialEq,Clone, Copy)]
 pub enum NodeKind {
 	ND_ADD,
@@ -27,12 +29,12 @@ impl Node{
 		Self { kind: NodeKind::ND_NUM, lhs:None, rhs:None, val: Some(*val) }
 	}
 
-	pub fn expr(&self, tok: &Token)->Self{
-		let mut node = self.primary(tok);
+	pub fn expr(&self, tok: &mut TokenList)->Self{
+		let mut node = self.mul(tok);
 		loop {
-			if tok.consume('+') {
+			if tok.next().unwrap().consume('+') {
 				node = Self::new(NodeKind::ND_ADD, node, self.primary(tok));
-			}else if tok.consume('-'){
+			}else if tok.next().unwrap().consume('-'){
 				node = Self::new(NodeKind::ND_SUB, node, self.primary(tok));
 			}else{
 				return node;
@@ -40,12 +42,12 @@ impl Node{
 		}
 	}
 
-	pub fn mul(&self, tok: &Token)->Self{
+	pub fn mul(&self, tok: &mut TokenList)->Self{
 		let mut node = self.primary(tok);
 		loop {
-			if tok.consume('*') {
+			if tok.next().unwrap().consume('*') {
 				node = Self::new(NodeKind::ND_MUL, node, self.primary(tok));
-			}else if tok.consume('/'){
+			}else if tok.next().unwrap().consume('/'){
 				node = Self::new(NodeKind::ND_DIV, node, self.primary(tok));
 			}else{
 				return node;
@@ -54,13 +56,13 @@ impl Node{
 
 	}
 
-	pub fn primary(&self, tok: &Token)->Self{
-		if tok.consume('('){
+	pub fn primary(&self, tok: &mut TokenList)->Self{
+		if tok.next().unwrap().consume('('){
 			let node = self.expr(tok);
-			tok.expect(')');
+			tok.next().unwrap().expect(')');
 			node
 		}else{
-			Self::new_num(&tok.expect_number())
+			Self::new_num(&tok.next().unwrap().expect_number())
 		}
 	}
 
