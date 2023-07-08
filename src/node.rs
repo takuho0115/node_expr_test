@@ -63,4 +63,31 @@ impl Node{
 			Self::new_num(&tok.expect_number())
 		}
 	}
+
+	pub fn gen(&self){
+		if self.kind == NodeKind::ND_NUM {
+			println!("  push {}", self.val.unwrap());
+			return;
+		}
+
+		self.lhs.as_ref().unwrap().gen();
+		self.rhs.as_ref().unwrap().gen();
+
+		println!("  pop rdi");
+		println!("  pop rax");
+		
+		match self.kind {
+			NodeKind::ND_ADD => println!("  add rax, rdi"),
+			NodeKind::ND_SUB => println!("  sub rax, rdi"),
+			NodeKind::ND_MUL => println!("  mul rax, rdi"),
+			NodeKind::ND_DIV => {
+				println!("  cqo");
+				println!("  idiv rdi")
+			},
+			_ => {}
+		};
+
+		println!("  push rax");
+		
+	}
 }
