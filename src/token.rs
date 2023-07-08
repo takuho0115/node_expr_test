@@ -41,6 +41,7 @@ impl Token {
 	}
 }
 
+#[derive(Clone)]
 struct TokenList{
 	original: &'static str,
 	list: Vec<Token>,
@@ -108,3 +109,10 @@ impl TokenList{
 	}
 }
 
+impl Iterator for TokenList {
+	type Item = Token;
+	fn next(&mut self) -> Option<Self::Item> {
+		self.current += 1;
+		Some(self.list[self.current].clone())
+	}
+}
