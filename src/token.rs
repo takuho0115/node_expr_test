@@ -1,8 +1,8 @@
 #[derive(PartialEq,Clone)]
 pub enum TokenKind {
-	TK_RESERVED,
-	TK_NUM,
-	TK_EOF,
+	TkReserved,
+	TkNum,
+	TkEof,
 }
 
 #[derive(Clone)]
@@ -19,7 +19,7 @@ impl Token {
 	}
 
 	pub fn consume(&self, op:char)->bool{
-		!(self.kind != TokenKind::TK_RESERVED || self.str.unwrap() != op)
+		self.kind == TokenKind::TkReserved && self.str.unwrap() == op
 	}
 
 	pub fn expect(&self, op:char){
@@ -29,13 +29,13 @@ impl Token {
 	}
 
 	pub fn expect_number(&self)->usize{
-		if self.kind != TokenKind::TK_NUM{
+		if self.kind != TokenKind::TkNum{
 			panic!("数ではありません");
 		}
 		self.val.unwrap()
 	}
 
 	pub fn at_eof(&self)->bool{
-		self.kind == TokenKind::TK_EOF
+		self.kind == TokenKind::TkEof
 	}
 }

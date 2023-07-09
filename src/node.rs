@@ -1,23 +1,23 @@
-#[path="./tokenlist.rs"]
-mod tokenlist;
 use std::iter::Peekable;
-
+#[path="./tokenlist.rs"]
+pub mod tokenlist;
 use tokenlist::*;
 #[derive(PartialEq,Clone, Copy)]
 pub enum NodeKind {
-	ND_ADD,
-	ND_SUB,
-	ND_MUL,
-	ND_DIV,
-	ND_NUM,
+	NdAdd,
+	NdSub,
+	NdMul,
+	NdDiv,
+	NdNum,
+	NdFirst,
 }
 
 #[derive(Clone)]
 pub struct Node{
-	kind: NodeKind,
-	lhs: Option<Box<Node>>,
-	rhs: Option<Box<Node>>,
-	val: Option<usize>,
+	pub kind: NodeKind,
+	pub lhs: Option<Box<Node>>,
+	pub rhs: Option<Box<Node>>,
+	pub val: Option<usize>,
 }
 
 impl Node{
@@ -26,29 +26,41 @@ impl Node{
 	}
 
 	pub fn new_num(val: &usize)->Self{
-		Self { kind: NodeKind::ND_NUM, lhs:None, rhs:None, val: Some(*val) }
+		Self { kind: NodeKind::NdNum, lhs:None, rhs:None, val: Some(*val) }
 	}
 
-	pub fn expr(&self, tok: &mut TokenList)->Self{
+	pub fn expr(&mut self, tok: &mut Peekable<TokenList>)->Self{
 		let mut node = self.mul(tok);
 		loop {
-			if tok.next().unwrap().consume('+') {
-				node = Self::new(NodeKind::ND_ADD, node, self.primary(tok));
-			}else if tok.next().unwrap().consume('-'){
-				node = Self::new(NodeKind::ND_SUB, node, self.primary(tok));
+			if let Some(c_tok) = tok.peek() {
+				if c_tok.consume('+') {
+					tok.next();
+					node = Self::new(NodeKind::NdAdd, node, self.mul(tok));
+				}else if c_tok.consume('-'){
+					tok.next();
+					node = Self::new(NodeKind::NdSub, node, self.mul(tok));
+				}else{
+					return node;
+				}
 			}else{
 				return node;
 			}
 		}
 	}
 
-	pub fn mul(&self, tok: &mut TokenList)->Self{
+	pub fn mul(&mut self, tok: &mut Peekable<TokenList>)->Self{
 		let mut node = self.primary(tok);
 		loop {
-			if tok.next().unwrap().consume('*') {
-				node = Self::new(NodeKind::ND_MUL, node, self.primary(tok));
-			}else if tok.next().unwrap().consume('/'){
-				node = Self::new(NodeKind::ND_DIV, node, self.primary(tok));
+			if let Some(c_tok) = tok.peek(){
+				if c_tok.consume('*') {
+					tok.next();
+					node = Self::new(NodeKind::NdMul, node, self.primary(tok));
+				}else if c_tok.consume('/'){
+					tok.next();
+					node = Self::new(NodeKind::NdDiv, node, self.primary(tok));
+				}else{
+					return node;
+				}
 			}else{
 				return node;
 			}
@@ -56,18 +68,25 @@ impl Node{
 
 	}
 
-	pub fn primary(&self, tok: &mut TokenList)->Self{
-		if tok.next().unwrap().consume('('){
+	pub fn primary(&mut self, tok: &mut Peekable<TokenList>)->Self{
+		if tok.peek().unwrap().consume('('){
+			tok.next();
 			let node = self.expr(tok);
 			tok.next().unwrap().expect(')');
 			node
 		}else{
-			Self::new_num(&tok.next().unwrap().expect_number())
+			if self.kind == NodeKind::NdFirst {
+				self.kind = NodeKind::NdNum;
+				self.val = Some(tok.next().unwrap().expect_number());
+				self.clone()
+			}else{
+				Self::new_num(&tok.next().unwrap().expect_number())
+			}
 		}
 	}
 
 	pub fn gen(&self){
-		if self.kind == NodeKind::ND_NUM {
+		if self.kind == NodeKind::NdNum {
 			println!("  push {}", self.val.unwrap());
 			return;
 		}
@@ -79,10 +98,10 @@ impl Node{
 		println!("  pop rax");
 		
 		match self.kind {
-			NodeKind::ND_ADD => println!("  add rax, rdi"),
-			NodeKind::ND_SUB => println!("  sub rax, rdi"),
-			NodeKind::ND_MUL => println!("  mul rax, rdi"),
-			NodeKind::ND_DIV => {
+			NodeKind::NdAdd => println!("  add rax, rdi"),
+			NodeKind::NdSub => println!("  sub rax, rdi"),
+			NodeKind::NdMul => println!("  mul rax, rdi"),
+			NodeKind::NdDiv => {
 				println!("  cqo");
 				println!("  idiv rdi")
 			},
