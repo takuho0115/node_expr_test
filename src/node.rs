@@ -68,6 +68,17 @@ impl Node{
 
 	}
 
+	pub fn unary(&mut self, tok: &mut Peekable<TokenList>)->Self{
+		if tok.peek().unwrap().consume('+'){
+			tok.next();
+			return self.primary(tok);
+		}else if tok.peek().unwrap().consume('-'){
+			tok.next();
+			return Self::new(NodeKind::NdSub, Self::new_num(&0), self.primary(tok));
+		}
+		return self.primary(tok);
+	}
+
 	pub fn primary(&mut self, tok: &mut Peekable<TokenList>)->Self{
 		if tok.peek().unwrap().consume('('){
 			tok.next();
