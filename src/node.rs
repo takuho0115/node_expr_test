@@ -49,15 +49,15 @@ impl Node{
 	}
 
 	pub fn mul(&mut self, tok: &mut Peekable<TokenList>)->Self{
-		let mut node = self.primary(tok);
+		let mut node = self.unary(tok);
 		loop {
 			if let Some(c_tok) = tok.peek(){
 				if c_tok.consume('*') {
 					tok.next();
-					node = Self::new(NodeKind::NdMul, node, self.primary(tok));
+					node = Self::new(NodeKind::NdMul, node, self.unary(tok));
 				}else if c_tok.consume('/'){
 					tok.next();
-					node = Self::new(NodeKind::NdDiv, node, self.primary(tok));
+					node = Self::new(NodeKind::NdDiv, node, self.unary(tok));
 				}else{
 					return node;
 				}
