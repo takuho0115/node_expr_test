@@ -3,6 +3,8 @@ use std::{iter::{Peekable, Enumerate}, str::Chars};
 #[path="./token.rs"]
 mod token;
 use token::*;
+
+#[derive(Debug)]
 pub struct TokenList{
 	pub original: String,
 	pub list: Vec<Token>,
@@ -31,6 +33,7 @@ impl TokenList{
 			if "!=<>".contains(c){
 				let mut tok = Token::new(TokenKind::TkReserved, &c, &i);
 				tok.str = Some(Self::read_cmp(&c, &mut chars));
+				self.list.push(tok);
 				continue;
 			}
 			if !c.to_digit(10).is_none(){
@@ -68,7 +71,7 @@ impl TokenList{
 		let mut join_str = c.to_string();
 		while let Some((_i, p)) = iter.peek() {
 			if "!=<>".contains(*p){
-				join_str.push(*c);
+				join_str.push(*p);
 				iter.next();
 			}else{
 				break;

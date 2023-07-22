@@ -1,11 +1,11 @@
-#[derive(PartialEq,Clone)]
+#[derive(PartialEq,Clone,Debug)]
 pub enum TokenKind {
 	TkReserved,
 	TkNum,
 	TkEof,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Token{
 	pub kind: TokenKind,
 	pub val: Option<usize>,

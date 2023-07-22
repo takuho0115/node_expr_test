@@ -2,7 +2,7 @@ use std::iter::Peekable;
 #[path="./tokenlist.rs"]
 pub mod tokenlist;
 use tokenlist::*;
-#[derive(PartialEq,Clone, Copy)]
+#[derive(PartialEq,Clone, Copy, Debug)]
 pub enum NodeKind {
 	NdAdd, // +
 	NdSub, // -
@@ -18,13 +18,14 @@ pub enum NodeKind {
 	NdBnk, 
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Node{
 	pub kind: NodeKind,
 	pub lhs: Option<Box<Node>>,
 	pub rhs: Option<Box<Node>>,
 	pub val: Option<usize>,
 }
+
 
 impl Node{
 	pub fn new(kind: NodeKind, lhs: Node, rhs: Node)->Self{
