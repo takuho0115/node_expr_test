@@ -12,8 +12,8 @@ fn main() {
 	let mut node:Node = Node { kind: NodeKind::NdBnk, lhs: None, rhs: None, val: None };
   let node = node.expr(&mut token);
 
-	println!("{:?}", token);
-	println!("{:?}", node);
+	// println!("{:?}", token);
+	// println!("{:?}", node);
 
   // アセンブリの前半部分を出力
   println!(".intel_syntax noprefix");
