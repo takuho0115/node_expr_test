@@ -9,22 +9,23 @@ pub enum TokenKind {
 pub struct Token{
 	pub kind: TokenKind,
 	pub val: Option<usize>,
-	pub str: Option<char>,
-	pub pos: Option<usize>, 
+	pub str: Option<String>,
+	pub pos: Option<usize>,
 }
 
-impl Token {
-	pub fn new(kind: TokenKind, str: &char, pos: &usize)->Self{
-		Token { kind: kind, val: None, str: Some(*str), pos:Some(*pos) }
+impl Token{
+	pub fn new(kind: TokenKind, str: &impl ToString, pos: &usize)->Self
+	{
+		Token { kind: kind, val: None, str: Some(str.to_string()), pos:Some(*pos) }
 	}
 
-	pub fn consume(&self, op:char)->bool{
-		self.kind == TokenKind::TkReserved && self.str.unwrap() == op
+	pub fn consume(&self, op:&impl ToString)->bool{
+		self.kind == TokenKind::TkReserved && self.str == Some(op.to_string())
 	}
 
-	pub fn expect(&self, op:char){
+	pub fn expect(&self, op:&impl ToString){
 		if !self.consume(op) {
-			panic!("'{}'ではありません", op);
+			panic!("'{}'ではありません", op.to_string());
 		}
 	}
 

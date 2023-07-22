@@ -28,17 +28,21 @@ impl TokenList{
 				self.list.push(Token::new(TokenKind::TkReserved, &c, &i));
 				continue;
 			}
-
+			if "!=<>".contains(c){
+				let mut tok = Token::new(TokenKind::TkReserved, &c, &i);
+				tok.str = Some(Self::read_cmp(&c, &mut chars));
+				continue;
+			}
 			if !c.to_digit(10).is_none(){
 				let mut tok = Token::new(TokenKind::TkNum, &c, &i);
-				tok.val = Some(TokenList::read_num(&c, &mut chars));
+				tok.val = Some(Self::read_num(&c, &mut chars));
 				self.list.push(tok);
 				continue;
 			}
 			self.at_error(i, "トークナイズできません。");
 		}
 
-		self.list.push(Token::new(TokenKind::TkEof, &'\0', &chars.count()));
+		self.list.push(Token::new(TokenKind::TkEof, &"\0", &chars.count()));
 		self
 	}
 
@@ -49,8 +53,7 @@ impl TokenList{
 	}
 
 	fn read_num(c:&char, iter:&mut Peekable<Enumerate<Chars>>)->usize{
-		let mut join_str = String::new();
-		join_str.push(*c);
+		let mut join_str = c.to_string();
 		while let Some((_i, p)) = iter.peek() {
 			if p.to_digit(10).is_none(){
 				break;
@@ -58,7 +61,20 @@ impl TokenList{
 			join_str.push(*p);
 			iter.next();
 		}
-		join_str.parse::<usize>().unwrap()
+		join_str.parse::<usize>().expect("out of range")
+	}
+
+	fn read_cmp(c:&char, iter:&mut Peekable<Enumerate<Chars>>)->String{
+		let mut join_str = c.to_string();
+		while let Some((_i, p)) = iter.peek() {
+			if "!=<>".contains(*p){
+				join_str.push(*c);
+				iter.next();
+			}else{
+				break;
+			}
+		}
+		join_str
 	}
 }
 
@@ -71,7 +87,7 @@ impl Iterator for TokenList {
 		}else{
 			Some(self.current.unwrap() + 1)
 		};
-		
+
 		self.list.get(self.current.unwrap()).cloned()
 	}
 }

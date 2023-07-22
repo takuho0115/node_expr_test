@@ -4,12 +4,18 @@ pub mod tokenlist;
 use tokenlist::*;
 #[derive(PartialEq,Clone, Copy)]
 pub enum NodeKind {
-	NdAdd,
-	NdSub,
-	NdMul,
-	NdDiv,
-	NdNum,
-	NdFirst,
+	NdAdd, // +
+	NdSub, // -
+	NdMul, // *
+	NdDiv, // /
+	NdNum, // 0123456879
+	NdEql, // ==
+	NdNeq, // !=
+	NdGrt, // >
+	NdGeq, // >=
+	NdLst, // <
+	NdLeq, // <=
+	NdBnk, 
 }
 
 #[derive(Clone)]
@@ -30,13 +36,61 @@ impl Node{
 	}
 
 	pub fn expr(&mut self, tok: &mut Peekable<TokenList>)->Self{
-		let mut node = self.mul(tok);
-		loop {
+		self.equality(tok)
+	}
+
+	pub fn equality(&mut self, tok: &mut Peekable<TokenList>)->Self{
+		let mut node = self.relational(tok);
+		loop{
 			if let Some(c_tok) = tok.peek() {
-				if c_tok.consume('+') {
+				if c_tok.consume(&"==") {
+					tok.next();
+					node = Self::new(NodeKind::NdEql, node, self.relational(tok));
+				}else if c_tok.consume(&"!="){
+					tok.next();
+					node = Self::new(NodeKind::NdNeq, node, self.relational(tok));
+				}else{
+					return node;
+				}
+			}else{
+				return node;
+			}
+		}
+	}
+
+	pub fn relational(&mut self, tok: &mut Peekable<TokenList>)->Self{
+		let mut node = self.add(tok);
+		loop{
+			if let Some(c_tok) = tok.peek() {
+				if c_tok.consume(&'<') {
+					tok.next();
+					node = Self::new(NodeKind::NdLst, node, self.add(tok));
+				}else if c_tok.consume(&"<="){
+					tok.next();
+					node = Self::new(NodeKind::NdLeq, node, self.add(tok));
+				}else if c_tok.consume(&'>'){
+					tok.next();
+					node = Self::new(NodeKind::NdGrt, node, self.add(tok));
+				}else if c_tok.consume(&">="){
+					tok.next();
+					node = Self::new(NodeKind::NdGeq, node, self.add(tok));
+				}else{
+					return node;
+				}
+			}else{
+				return node;
+			}
+		}
+	}
+
+	pub fn add(&mut self, tok: &mut Peekable<TokenList>)->Self{
+		let mut node = self.mul(tok);
+		loop{
+			if let Some(c_tok) = tok.peek() {
+				if c_tok.consume(&'+') {
 					tok.next();
 					node = Self::new(NodeKind::NdAdd, node, self.mul(tok));
-				}else if c_tok.consume('-'){
+				}else if c_tok.consume(&'-'){
 					tok.next();
 					node = Self::new(NodeKind::NdSub, node, self.mul(tok));
 				}else{
@@ -52,10 +106,10 @@ impl Node{
 		let mut node = self.unary(tok);
 		loop {
 			if let Some(c_tok) = tok.peek(){
-				if c_tok.consume('*') {
+				if c_tok.consume(&'*') {
 					tok.next();
 					node = Self::new(NodeKind::NdMul, node, self.unary(tok));
-				}else if c_tok.consume('/'){
+				}else if c_tok.consume(&'/'){
 					tok.next();
 					node = Self::new(NodeKind::NdDiv, node, self.unary(tok));
 				}else{
@@ -69,10 +123,10 @@ impl Node{
 	}
 
 	pub fn unary(&mut self, tok: &mut Peekable<TokenList>)->Self{
-		if tok.peek().unwrap().consume('+'){
+		if tok.peek().unwrap().consume(&'+'){
 			tok.next();
 			return self.primary(tok);
-		}else if tok.peek().unwrap().consume('-'){
+		}else if tok.peek().unwrap().consume(&'-'){
 			tok.next();
 			return Self::new(NodeKind::NdSub, Self::new_num(&0), self.primary(tok));
 		}
@@ -80,13 +134,13 @@ impl Node{
 	}
 
 	pub fn primary(&mut self, tok: &mut Peekable<TokenList>)->Self{
-		if tok.peek().unwrap().consume('('){
+		if tok.peek().unwrap().consume(&'('){
 			tok.next();
 			let node = self.expr(tok);
-			tok.next().unwrap().expect(')');
+			tok.next().unwrap().expect(&')');
 			node
 		}else{
-			if self.kind == NodeKind::NdFirst {
+			if self.kind == NodeKind::NdBnk {
 				self.kind = NodeKind::NdNum;
 				self.val = Some(tok.next().unwrap().expect_number());
 				self.clone()
@@ -94,6 +148,10 @@ impl Node{
 				Self::new_num(&tok.next().unwrap().expect_number())
 			}
 		}
+	}
+
+	pub fn swap(&self)->Self{
+		Self { kind: self.kind, lhs: self.rhs.clone(), rhs: self.lhs.clone(), val: self.val }
 	}
 
 	pub fn gen(&self){
@@ -114,9 +172,28 @@ impl Node{
 			NodeKind::NdMul => println!("  mul rax, rdi"),
 			NodeKind::NdDiv => {
 				println!("  cqo");
-				println!("  idiv rdi")
+				println!("  idiv rdi");
 			},
-			_ => {}
+			NodeKind::NdEql |
+			NodeKind::NdNeq |
+			NodeKind::NdGrt |
+			NodeKind::NdGeq |
+			NodeKind::NdLst |
+			NodeKind::NdLeq =>{
+				println!("  cmp rdi rax");
+				match self.kind {
+					NodeKind::NdEql => println!("  sete al"),
+					NodeKind::NdNeq => println!("  setne al"),
+					NodeKind::NdGrt => println!("  setg al"),
+					NodeKind::NdGeq => println!("  setge al"),
+					NodeKind::NdLst => println!("  setl al"),
+					NodeKind::NdLeq => println!("  setle al"),
+					_ => ()
+				}
+				println!("  movzb rax, al");
+			}
+
+			_ => ()
 		};
 
 		println!("  push rax");
