@@ -193,7 +193,6 @@ impl Node{
 				}
 				println!("  movzb rax, al");
 			}
-
 			_ => ()
 		};
 

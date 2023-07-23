@@ -18,27 +18,28 @@ impl TokenList{
 
 	fn tokenize(mut self)->Self{
 		let mut chars = self.original.chars().enumerate().peekable();
+		let is_oparator = |c: &char| "+-*/();".contains(*c);
+		let is_comparator = |c: &char| "!=<>".contains(*c);
+		let is_alphabets = |c: &char| String::from_utf8((b'A'..=b'z').collect()).unwrap().contains(*c);
+		let is_digit = |c: &char| !c.to_digit(10).is_none();
 		
 		// while chars.next() != None
-		while let Some(current) = chars.next() {
-			let (i, c) = current;
+		'o:while let Some((i, c)) = chars.next() {
 			if c.is_whitespace(){
 				continue;
 			}
-
-			if "+-*/()".contains(c) {
-				self.list.push(Token::new(TokenKind::TkReserved, &c, &i));
-				continue;
+			for reader in [is_oparator,is_comparator,is_alphabets]{
+				if reader(&c){
+					let mut tok = Token::new(TokenKind::TkReserved, &c, &i);
+					tok.str = Some(Self::read_ahead(&c, &mut chars, reader));
+					self.list.push(tok);
+					continue 'o;
+				}
 			}
-			if "!=<>".contains(c){
-				let mut tok = Token::new(TokenKind::TkReserved, &c, &i);
-				tok.str = Some(Self::read_cmp(&c, &mut chars));
-				self.list.push(tok);
-				continue;
-			}
-			if !c.to_digit(10).is_none(){
+			if is_digit(&c){
 				let mut tok = Token::new(TokenKind::TkNum, &c, &i);
-				tok.val = Some(Self::read_num(&c, &mut chars));
+				tok.val = Some(Self::read_ahead(&c, &mut chars, is_digit)
+					.parse::<usize>().expect("out of range"));
 				self.list.push(tok);
 				continue;
 			}
@@ -55,22 +56,11 @@ impl TokenList{
 		panic!("{}", e_message);
 	}
 
-	fn read_num(c:&char, iter:&mut Peekable<Enumerate<Chars>>)->usize{
+	fn read_ahead<F>(c: &char, iter: &mut Peekable<Enumerate<Chars>>, f: F)->String
+		where F:Fn(&char)->bool{
 		let mut join_str = c.to_string();
 		while let Some((_i, p)) = iter.peek() {
-			if p.to_digit(10).is_none(){
-				break;
-			}
-			join_str.push(*p);
-			iter.next();
-		}
-		join_str.parse::<usize>().expect("out of range")
-	}
-
-	fn read_cmp(c:&char, iter:&mut Peekable<Enumerate<Chars>>)->String{
-		let mut join_str = c.to_string();
-		while let Some((_i, p)) = iter.peek() {
-			if "!=<>".contains(*p){
+			if f(p){
 				join_str.push(*p);
 				iter.next();
 			}else{
